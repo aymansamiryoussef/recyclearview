@@ -1,64 +1,73 @@
 package android.example.recyclearview
 
-import android.os.Bundle
-import android.util.Log
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import model.heddermodel
-import network.Api
-import network.RetrofitClient
-import retrofit2.*
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NewsItemClicked {
     lateinit var newRecyclerView: RecyclerView
-    lateinit var newArraylist: ArrayList<word>
+    lateinit var myadpter:customAdpter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        testmyapi()
-        newArraylist = ArrayList<word>()
-        val a = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val b = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val c = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val d = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val f = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val g = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val h = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val x = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val z = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        val l = word(R.drawable.android, "asdasdad", "asdfsafsaf")
-        newArraylist.add(a)
-        newArraylist.add(b)
-        newArraylist.add(c)
-        newArraylist.add(d)
-        newArraylist.add(f)
-        newArraylist.add(g)
-        newArraylist.add(h)
-        newArraylist.add(x)
-        newArraylist.add(z)
-        newArraylist.add(l)
 
         newRecyclerView = findViewById(R.id.Recyclerview)
+
         newRecyclerView.layoutManager = LinearLayoutManager(this)
+        fetchdata()
+        myadpter= customAdpter(this)
+        newRecyclerView.adapter=myadpter
 
-        newRecyclerView.adapter = customAdpter(newArraylist)
+
+
+
+    }
+
+    private fun fetchdata()
+    {
+        val url ="https://newsapi.org/v2/everything?q=apple&from=2022-09-07&to=2022-09-07&sortBy=popularity&apiKey=ae542ceea49f47f0a95d35a1c706defe"
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET,
+            url,
+            null,
+            Response.Listener {
+
+                val newsJsonArray = it.getJSONArray("articles")
+                val newsArray = ArrayList<news>()
+                for(i in 0 until newsJsonArray.length()) {
+                    val newsJsonObject = newsJsonArray.getJSONObject(i)
+                    val news = news(
+                        newsJsonObject.getString("title"),
+                        newsJsonObject.getString("author"),
+                        newsJsonObject.getString("url"),
+                        newsJsonObject.getString("urlToImage")
+                    )
+                    newsArray.add(news)
+                }
+
+                myadpter.updateNews(newsArray)
+            },
+            Response.ErrorListener {
+
+            }
+        )
+        MySingleton.getInstance(this).addToRequestQueue(jsonObjectRequest)
+
 
     }
 
-    fun testmyapi() {
-        val r: Retrofit = RetrofitClient.getInstance()
-        val response = r.create(Api::class.java)
-        val callback = response.getsuperHeroes()
-        callback?.enqueue(object : Callback<heddermodel> {
-            override fun onResponse(call: Call<heddermodel>?, response2: Response<heddermodel>?) {
-
-                Log.e("MainActivity", "Response is  Sucess---->" +   response2?.body()?.acceptEncoding)
-            }
-            override fun onFailure(call: Call<heddermodel>, t: Throwable) {
-                Log.e("MainActivity", "Response is  Failer---->" + t?.message.toString())
-            }
-        })
-
+    override fun onItemClicked(item: news) {
+        val builder =  CustomTabsIntent.Builder()
+        val customTabsIntent = builder.build()
+        customTabsIntent.launchUrl(this, Uri.parse(item.Url))
     }
+
+
 }
